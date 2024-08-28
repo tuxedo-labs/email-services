@@ -1,0 +1,9 @@
+{
+  "email": {
+    "subject": "Testing email services",
+    "content": "Hello,\n\nThis is a reminder for the meeting scheduled at 3 PM tomorrow.\n\nBest regards,\nTeam",
+    "from": "admin@gmail.com",
+    "to": "admin@gmail.com"
+  }
+}
+
