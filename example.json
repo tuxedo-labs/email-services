@@ -1,9 +1,20 @@
+# default
 {
   "email": {
     "subject": "Testing email services",
     "content": "Hello,\n\nThis is a reminder for the meeting scheduled at 3 PM tomorrow.\n\nBest regards,\nTeam",
     "from": "admin@gmail.com",
     "to": "admin@gmail.com"
+  }
+}
+
+# verify - token
+{
+  "email": {
+    "subject": "Testing email services",
+    "content" : "Register berhasil, segera aktifasi akun anda dengan memasukan token <b>28291</b>",
+    "from": "admin@gmail.com",
+    "to": "rafia9005@gmail.com"
   }
 }
 
