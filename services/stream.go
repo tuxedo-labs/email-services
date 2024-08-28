@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"tuxedo-email-service/engine"
 	"tuxedo-email-service/types"
 
@@ -12,7 +13,8 @@ import (
 )
 
 func Stream() {
-	connection, err := amqp091.Dial("amqp://rafia9005:Ahmadrafi01@103.175.220.20:5672")
+	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+	connection, err := amqp091.Dial(rabbitMQURL)
 	if err != nil {
 		log.Fatalf("Error connecting to RabbitMQ: %v", err)
 	}
