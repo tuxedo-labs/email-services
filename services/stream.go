@@ -13,6 +13,7 @@ import (
 )
 
 func Stream() {
+	fmt.Println("succes")
 	rabbitMQURL := os.Getenv("RABBITMQ_URL")
 	connection, err := amqp091.Dial(rabbitMQURL)
 	if err != nil {
