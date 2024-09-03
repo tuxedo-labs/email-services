@@ -9,18 +9,37 @@ import (
 )
 
 func Send(subject, content, from, to string) error {
-	smtpServer := os.Getenv("MAIL_HOST")
-	port := os.Getenv("MAIL_PORT")
-	user := os.Getenv("MAIL_USERNAME")
-	password := os.Getenv("MAIL_PASSWORD")
-	fromAddress := from
-	toAddress := []string{to}
+	smtpServer, port, user, password := getSMTPConfig()
 
-	tmpl, err := template.ParseFiles("templates/templates.html")
+	tmpl, err := loadTemplate("templates/templates.html")
 	if err != nil {
-		return fmt.Errorf("failed to parse template: %w", err)
+		return fmt.Errorf("failed to load template: %w", err)
 	}
 
+	emailBody, err := generateEmailBody(subject, content, from, tmpl)
+	if err != nil {
+		return fmt.Errorf("failed to generate email body: %w", err)
+	}
+
+	if err := sendMail(smtpServer, port, user, password, from, to, emailBody); err != nil {
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	return nil
+}
+
+func getSMTPConfig() (server, port, user, password string) {
+	return os.Getenv("MAIL_HOST"),
+		os.Getenv("MAIL_PORT"),
+		os.Getenv("MAIL_USERNAME"),
+		os.Getenv("MAIL_PASSWORD")
+}
+
+func loadTemplate(templatePath string) (*template.Template, error) {
+	return template.ParseFiles(templatePath)
+}
+
+func generateEmailBody(subject, content, from string, tmpl *template.Template) (string, error) {
 	data := map[string]string{
 		"Subject": subject,
 		"Content": content,
@@ -28,26 +47,14 @@ func Send(subject, content, from, to string) error {
 	}
 
 	var body bytes.Buffer
-
-	err = tmpl.Execute(&body, data)
-	if err != nil {
-		return fmt.Errorf("failed to execute template: %w", err)
+	if err := tmpl.Execute(&body, data); err != nil {
+		return "", err
 	}
 
-	emailBody := fmt.Sprintf("Subject: %s\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", subject, body.String())
+	return fmt.Sprintf("Subject: %s\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", subject, body.String()), nil
+}
 
-	auth := smtp.PlainAuth("", user, password, smtpServer)
-
-	err = smtp.SendMail(
-		smtpServer+":"+port,
-		auth,
-		fromAddress,
-		toAddress,
-		[]byte(emailBody),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
-	}
-
-	return nil
+func sendMail(server, port, user, password, from, to, body string) error {
+	auth := smtp.PlainAuth("", user, password, server)
+	return smtp.SendMail(server+":"+port, auth, from, []string{to}, []byte(body))
 }

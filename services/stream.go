@@ -13,40 +13,52 @@ import (
 )
 
 func Stream() {
-	fmt.Println("succes")
 	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+	connection, channel := setupRabbitMQ(rabbitMQURL)
+	defer connection.Close()
+	defer channel.Close()
+
+	ctx := context.Background()
+	consumeEmails(ctx, channel)
+}
+
+func setupRabbitMQ(rabbitMQURL string) (*amqp091.Connection, *amqp091.Channel) {
 	connection, err := amqp091.Dial(rabbitMQURL)
 	if err != nil {
 		log.Fatalf("Error connecting to RabbitMQ: %v", err)
 	}
-	defer connection.Close()
 
 	channel, err := connection.Channel()
 	if err != nil {
 		log.Fatalf("Error creating channel: %v", err)
 	}
 
-	ctx := context.Background()
+	return connection, channel
+}
+
+func consumeEmails(ctx context.Context, channel *amqp091.Channel) {
 	emailConsumer, err := channel.ConsumeWithContext(ctx, "email", "consumer-email", true, false, false, false, nil)
 	if err != nil {
 		log.Fatalf("Error starting consumer: %v", err)
 	}
 
 	for message := range emailConsumer {
-		var data types.EmailData
+		processEmailMessage(message)
+	}
+}
 
-		err := json.Unmarshal(message.Body, &data)
-		if err != nil {
-			fmt.Println("Error unmarshalling JSON:", err)
-			continue
-		}
-		fmt.Println("Email:", data.Email.To)
-		err = engine.Send(data.Email.Subject, data.Email.Content, data.Email.From, data.Email.To)
+func processEmailMessage(message amqp091.Delivery) {
+	var data types.EmailData
 
-		if err != nil {
-			log.Printf("Error sending email: %v", err)
-		} else {
-			log.Println("Email sent successfully!")
-		}
+	if err := json.Unmarshal(message.Body, &data); err != nil {
+		log.Printf("Error unmarshalling JSON: %v", err)
+		return
+	}
+
+	fmt.Println("Sending email to:", data.Email.To)
+	if err := engine.Send(data.Email.Subject, data.Email.Content, data.Email.From, data.Email.To); err != nil {
+		log.Printf("Error sending email: %v", err)
+	} else {
+		log.Println("Email sent successfully!")
 	}
 }
